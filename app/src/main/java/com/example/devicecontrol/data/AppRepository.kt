@@ -111,10 +111,23 @@ class AppRepository(
         onStep("正在查询订单详情")
         val detail = api.orderDetail(orderId = orderId, token = token).requireData()
         val ticketCost = detail.promotionList.firstOrNull { it.promotionType == 4 }?.discountAmount ?: "-"
+        val integralCost = detail.promotionList.firstOrNull { it.promotionType == 8 }?.discountAmount ?: "-"
+        val otherPromotions = detail.promotionList
+            .filter { it.promotionType != 4 && it.promotionType != 8 }
+            .map {
+                PromotionSummary(
+                    promotionType = it.promotionType,
+                    discountAmount = it.discountAmount,
+                )
+            }
 
         return UnlockResult(
+            orderNo = finalOrderNo,
+            orderId = orderId,
             originPrice = detail.tradeOrderItem.firstOrNull()?.originPrice ?: "-",
             ticketCost = ticketCost,
+            integralCost = integralCost,
+            otherPromotions = otherPromotions,
         )
     }
 

@@ -71,6 +71,15 @@ data class PromotionItem(
 )
 
 data class UnlockResult(
+    val orderNo: String,
+    val orderId: String,
     val originPrice: String,
     val ticketCost: String,
+    val integralCost: String,
+    val otherPromotions: List<PromotionSummary>,
+)
+
+data class PromotionSummary(
+    val promotionType: Int?,
+    val discountAmount: String?,
 )

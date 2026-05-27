@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.devicecontrol.data.AppRepository
 import com.example.devicecontrol.data.TokenStore
+import com.example.devicecontrol.data.UnlockResult
 import com.example.devicecontrol.ui.AppViewModel
 import com.example.devicecontrol.ui.AppViewModelFactory
 import com.example.devicecontrol.ui.DeviceTab
@@ -92,6 +94,13 @@ private fun DeviceControlApp(vm: AppViewModel) {
         vm.consumeError()
     }
 
+    state.orderDetail?.let { detail ->
+        OrderDetailDialog(
+            detail = detail,
+            onDismiss = vm::dismissOrderDetail,
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
@@ -122,6 +131,56 @@ private fun DeviceControlApp(vm: AppViewModel) {
                 DeviceTab.Me -> MeScreen(state, vm)
             }
         }
+    }
+}
+
+@Composable
+private fun OrderDetailDialog(
+    detail: UnlockResult,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("订单详情") },
+        text = {
+            Column {
+                DetailLine("订单号", detail.orderNo)
+                DetailLine("订单 ID", detail.orderId)
+                DetailLine("订单原价", detail.originPrice)
+                DetailLine("花费小票", detail.ticketCost)
+                DetailLine("积分抵扣", detail.integralCost)
+                if (detail.otherPromotions.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    Text("其他优惠", style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(6.dp))
+                    detail.otherPromotions.forEach { promotion ->
+                        DetailLine(
+                            label = "类型 ${promotion.promotionType ?: "-"}",
+                            value = promotion.discountAmount ?: "-",
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("知道了")
+            }
+        },
+        shape = RoundedCornerShape(8.dp),
+    )
+}
+
+@Composable
+private fun DetailLine(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontWeight = FontWeight.Medium)
     }
 }
 

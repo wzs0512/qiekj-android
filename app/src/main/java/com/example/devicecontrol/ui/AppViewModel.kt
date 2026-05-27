@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.devicecontrol.data.AppRepository
 import com.example.devicecontrol.data.BalanceData
 import com.example.devicecontrol.data.DeviceItem
+import com.example.devicecontrol.data.UnlockResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -26,6 +27,7 @@ data class AppUiState(
     val devices: List<DeviceItem> = emptyList(),
     val balance: BalanceData? = null,
     val unlockStatus: String? = null,
+    val orderDetail: UnlockResult? = null,
     val toastMessage: String? = null,
     val errorMessage: String? = null,
 )
@@ -130,7 +132,7 @@ class AppViewModel(
                 _state.update { it.copy(unlockStatus = step) }
             }
         }.onSuccess { result ->
-            _state.update { it.copy(unlocking = false, unlockStatus = null) }
+            _state.update { it.copy(unlocking = false, unlockStatus = null, orderDetail = result) }
             showToast("解锁成功！订单原价：${result.originPrice}，花费小票：${result.ticketCost}")
             refreshBalance()
         }.onFailure {
@@ -145,6 +147,10 @@ class AppViewModel(
 
     fun consumeError() {
         _state.update { it.copy(errorMessage = null) }
+    }
+
+    fun dismissOrderDetail() {
+        _state.update { it.copy(orderDetail = null) }
     }
 
     private fun showToast(message: String) {
