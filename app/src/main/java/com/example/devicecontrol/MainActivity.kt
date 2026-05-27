@@ -52,6 +52,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.devicecontrol.data.AppRepository
+import com.example.devicecontrol.data.OrderHistoryItem
+import com.example.devicecontrol.data.OrderHistoryStore
 import com.example.devicecontrol.data.TokenStore
 import com.example.devicecontrol.data.UnlockResult
 import com.example.devicecontrol.ui.AppViewModel
@@ -65,7 +67,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             DeviceControlTheme {
                 val repository = remember {
-                    AppRepository(TokenStore(applicationContext))
+                    AppRepository(
+                        tokenStore = TokenStore(applicationContext),
+                        orderHistoryStore = OrderHistoryStore(applicationContext),
+                    )
                 }
                 val vm: AppViewModel = viewModel(
                     factory = AppViewModelFactory(repository),
@@ -303,6 +308,51 @@ private fun MeScreen(
             }
             else -> EmptyText("暂无资产信息")
         }
+
+        Spacer(Modifier.height(24.dp))
+        Divider()
+        Spacer(Modifier.height(18.dp))
+        Text("历史订单", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(8.dp))
+        if (state.orderHistory.isEmpty()) {
+            EmptyText("暂无历史订单")
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false),
+            ) {
+                items(state.orderHistory) { item ->
+                    OrderHistoryRow(item = item, onClick = { vm.showHistoricalOrder(item) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderHistoryRow(item: OrderHistoryItem, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+    ) {
+        Text(item.goodsName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "订单：${item.orderNo}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "原价：${item.originPrice}  小票：${item.ticketCost}  积分：${item.integralCost}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(12.dp))
+        Divider()
     }
 }
 

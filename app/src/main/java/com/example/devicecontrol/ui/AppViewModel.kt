@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.devicecontrol.data.AppRepository
 import com.example.devicecontrol.data.BalanceData
 import com.example.devicecontrol.data.DeviceItem
+import com.example.devicecontrol.data.OrderHistoryItem
 import com.example.devicecontrol.data.UnlockResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,7 @@ data class AppUiState(
     val unlocking: Boolean = false,
     val devices: List<DeviceItem> = emptyList(),
     val balance: BalanceData? = null,
+    val orderHistory: List<OrderHistoryItem> = emptyList(),
     val unlockStatus: String? = null,
     val orderDetail: UnlockResult? = null,
     val toastMessage: String? = null,
@@ -35,7 +37,12 @@ data class AppUiState(
 class AppViewModel(
     private val repository: AppRepository,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(AppUiState(hasToken = repository.localToken() != null))
+    private val _state = MutableStateFlow(
+        AppUiState(
+            hasToken = repository.localToken() != null,
+            orderHistory = repository.orderHistory(),
+        ),
+    )
     val state: StateFlow<AppUiState> = _state
 
     init {
@@ -132,7 +139,14 @@ class AppViewModel(
                 _state.update { it.copy(unlockStatus = step) }
             }
         }.onSuccess { result ->
-            _state.update { it.copy(unlocking = false, unlockStatus = null, orderDetail = result) }
+            _state.update {
+                it.copy(
+                    unlocking = false,
+                    unlockStatus = null,
+                    orderDetail = result,
+                    orderHistory = repository.orderHistory(),
+                )
+            }
             showToast("解锁成功！订单原价：${result.originPrice}，花费小票：${result.ticketCost}")
             refreshBalance()
         }.onFailure {
@@ -151,6 +165,10 @@ class AppViewModel(
 
     fun dismissOrderDetail() {
         _state.update { it.copy(orderDetail = null) }
+    }
+
+    fun showHistoricalOrder(item: OrderHistoryItem) {
+        _state.update { it.copy(orderDetail = item.toUnlockResult()) }
     }
 
     private fun showToast(message: String) {

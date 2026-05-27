@@ -77,9 +77,31 @@ data class UnlockResult(
     val ticketCost: String,
     val integralCost: String,
     val otherPromotions: List<PromotionSummary>,
+    val completedAt: Long,
 )
 
 data class PromotionSummary(
     val promotionType: Int?,
     val discountAmount: String?,
 )
+
+data class OrderHistoryItem(
+    val orderNo: String,
+    val orderId: String,
+    val goodsName: String,
+    val originPrice: String,
+    val ticketCost: String,
+    val integralCost: String,
+    val otherPromotions: List<PromotionSummary>,
+    val completedAt: Long,
+) {
+    fun toUnlockResult(): UnlockResult = UnlockResult(
+        orderNo = orderNo,
+        orderId = orderId,
+        originPrice = originPrice,
+        ticketCost = ticketCost,
+        integralCost = integralCost,
+        otherPromotions = otherPromotions,
+        completedAt = completedAt,
+    )
+}

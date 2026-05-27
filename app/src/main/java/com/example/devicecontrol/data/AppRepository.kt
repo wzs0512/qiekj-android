@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit
 
 class AppRepository(
     private val tokenStore: TokenStore,
+    private val orderHistoryStore: OrderHistoryStore,
 ) {
     private val api: DeviceApi
 
@@ -40,6 +41,8 @@ class AppRepository(
     }
 
     fun localToken(): String? = tokenStore.readToken()
+
+    fun orderHistory(): List<OrderHistoryItem> = orderHistoryStore.list()
 
     suspend fun sendCode(phone: String) {
         api.sendCode(phone = phone).throwIfFailed()
@@ -94,7 +97,7 @@ class AppRepository(
         ).requireData()
 
         val orderNo = unlock.orderNo ?: error("未获取到订单号")
-        onStep("正在同步设备状态")
+        onStep("设备已启动，等待使用结束")
 
         var lastStatus: SyncData
         do {
@@ -121,14 +124,28 @@ class AppRepository(
                 )
             }
 
-        return UnlockResult(
+        val result = UnlockResult(
             orderNo = finalOrderNo,
             orderId = orderId,
             originPrice = detail.tradeOrderItem.firstOrNull()?.originPrice ?: "-",
             ticketCost = ticketCost,
             integralCost = integralCost,
             otherPromotions = otherPromotions,
+            completedAt = System.currentTimeMillis(),
         )
+        orderHistoryStore.add(
+            OrderHistoryItem(
+                orderNo = result.orderNo,
+                orderId = result.orderId,
+                goodsName = device.goodsName.ifBlank { "未命名设备" },
+                originPrice = result.originPrice,
+                ticketCost = result.ticketCost,
+                integralCost = result.integralCost,
+                otherPromotions = result.otherPromotions,
+                completedAt = result.completedAt,
+            ),
+        )
+        return result
     }
 
     private fun requireToken(): String = tokenStore.readToken()?.takeIf { it.isNotBlank() }
