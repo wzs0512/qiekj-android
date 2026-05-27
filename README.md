@@ -17,7 +17,19 @@
 
 ### 1. 安装 APK
 
-安装调试包：
+推荐从 GitHub Releases 下载最新版调试包：
+
+```text
+https://github.com/wzs0512/qiekj-android/releases/download/v1.0.0-debug/qiekj-android-debug.apk
+```
+
+Release 页面：
+
+```text
+https://github.com/wzs0512/qiekj-android/releases/tag/v1.0.0-debug
+```
+
+如果是本地编译，安装包会生成在：
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
