@@ -1,4 +1,4 @@
-#胖乖生活一键开水
+胖乖生活一键开水版
 # Qiekj Android
 
 一个把 [`3ryng1um/qiekj`](https://github.com/3ryng1um/qiekj) Python 脚本流程改造成 Android App 的项目。原仓库说明这个流程主要用于胖乖生活饮水设备：通过登录获取 token，读取最近使用设备，获取设备 `skuId` / `imei`，再执行饮水解锁、同步状态和订单详情查询。
