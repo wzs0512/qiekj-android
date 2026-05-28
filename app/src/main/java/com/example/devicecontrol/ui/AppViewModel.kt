@@ -7,13 +7,14 @@ import com.example.devicecontrol.data.AppRepository
 import com.example.devicecontrol.data.BalanceData
 import com.example.devicecontrol.data.DeviceItem
 import com.example.devicecontrol.data.OrderHistoryItem
+import com.example.devicecontrol.data.PointsTaskRunner
 import com.example.devicecontrol.data.UnlockResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class DeviceTab { Control, Me }
+enum class DeviceTab { Control, Points, Me }
 
 data class AppUiState(
     val currentTab: DeviceTab = DeviceTab.Control,
@@ -25,6 +26,8 @@ data class AppUiState(
     val loadingDevices: Boolean = false,
     val loadingBalance: Boolean = false,
     val unlocking: Boolean = false,
+    val runningPointsTask: Boolean = false,
+    val pointsLogs: List<String> = emptyList(),
     val devices: List<DeviceItem> = emptyList(),
     val balance: BalanceData? = null,
     val orderHistory: List<OrderHistoryItem> = emptyList(),
@@ -38,6 +41,7 @@ data class AppUiState(
 class AppViewModel(
     private val repository: AppRepository,
 ) : ViewModel() {
+    private val pointsTaskRunner = PointsTaskRunner { repository.localToken() }
     private val _state = MutableStateFlow(
         AppUiState(
             hasToken = repository.localToken() != null,
@@ -156,6 +160,33 @@ class AppViewModel(
         }
     }
 
+
+    fun startPointsTask(userAgent: String) = viewModelScope.launch {
+        if (state.value.runningPointsTask) return@launch
+        runCatching {
+            _state.update {
+                it.copy(
+                    runningPointsTask = true,
+                    pointsLogs = listOf("准备执行自动化任务"),
+                )
+            }
+            pointsTaskRunner.run(userAgent) { line ->
+                appendPointLog(line)
+            }
+        }.onSuccess {
+            appendPointLog("任务流程结束")
+        }.onFailure {
+            appendPointLog("任务失败：${it.message ?: "未知错误"}")
+        }
+        _state.update { it.copy(runningPointsTask = false) }
+    }
+
+    private fun appendPointLog(line: String) {
+        _state.update { state ->
+            val now = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.CHINA).format(java.util.Date())
+            state.copy(pointsLogs = (state.pointsLogs + "[$now] $line").takeLast(500))
+        }
+    }
     fun consumeToast() {
         _state.update { it.copy(toastMessage = null) }
     }

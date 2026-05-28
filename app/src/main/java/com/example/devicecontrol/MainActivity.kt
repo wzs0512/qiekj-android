@@ -1,9 +1,11 @@
 package com.example.devicecontrol
 
 import android.os.Bundle
+import android.webkit.WebSettings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,10 +19,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -47,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -125,6 +130,12 @@ private fun DeviceControlApp(vm: AppViewModel) {
                     label = { Text("设备控制") },
                 )
                 NavigationBarItem(
+                    selected = state.currentTab == DeviceTab.Points,
+                    onClick = { vm.selectTab(DeviceTab.Points) },
+                    icon = { androidx.compose.material3.Icon(Icons.Outlined.PlayArrow, contentDescription = null) },
+                    label = { Text("积分任务") },
+                )
+                NavigationBarItem(
                     selected = state.currentTab == DeviceTab.Me,
                     onClick = { vm.selectTab(DeviceTab.Me) },
                     icon = { androidx.compose.material3.Icon(Icons.Outlined.Person, contentDescription = null) },
@@ -141,6 +152,7 @@ private fun DeviceControlApp(vm: AppViewModel) {
         ) {
             when (state.currentTab) {
                 DeviceTab.Control -> ControlScreen(state, vm)
+                DeviceTab.Points -> PointsTaskScreen(state, vm)
                 DeviceTab.Me -> MeScreen(state, vm)
             }
         }
@@ -197,6 +209,78 @@ private fun DetailLine(label: String, value: String) {
     }
 }
 
+
+@Composable
+private fun PointsTaskScreen(
+    state: com.example.devicecontrol.ui.AppUiState,
+    vm: AppViewModel,
+) {
+    val context = LocalContext.current
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(state.pointsLogs.size) {
+        if (state.pointsLogs.isNotEmpty()) {
+            listState.animateScrollToItem(state.pointsLogs.lastIndex)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Button(
+            onClick = {
+                val ua = WebSettings.getDefaultUserAgent(context)
+                vm.startPointsTask(ua)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !state.runningPointsTask,
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF222222)),
+        ) {
+            Text(if (state.runningPointsTask) "任务执行中" else "开始执行自动化任务")
+        }
+
+        Spacer(Modifier.height(18.dp))
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            color = Color(0xFF101418),
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+            ) {
+                if (state.pointsLogs.isEmpty()) {
+                    item {
+                        Text(
+                            "等待执行任务...",
+                            color = Color(0xFFB8C7D1),
+                            fontFamily = FontFamily.Monospace,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                } else {
+                    items(state.pointsLogs) { line ->
+                        Text(
+                            text = line,
+                            color = Color(0xFFB7F7C1),
+                            fontFamily = FontFamily.Monospace,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(vertical = 2.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 @Composable
 private fun ControlScreen(
     state: com.example.devicecontrol.ui.AppUiState,
