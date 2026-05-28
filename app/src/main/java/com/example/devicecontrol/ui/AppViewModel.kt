@@ -30,6 +30,7 @@ data class AppUiState(
     val orderHistory: List<OrderHistoryItem> = emptyList(),
     val unlockStatus: String? = null,
     val orderDetail: UnlockResult? = null,
+    val showOrderHistory: Boolean = false,
     val toastMessage: String? = null,
     val errorMessage: String? = null,
 )
@@ -167,8 +168,16 @@ class AppViewModel(
         _state.update { it.copy(orderDetail = null) }
     }
 
+    fun showOrderHistory() {
+        _state.update { it.copy(showOrderHistory = true, orderHistory = repository.orderHistory()) }
+    }
+
+    fun dismissOrderHistory() {
+        _state.update { it.copy(showOrderHistory = false) }
+    }
+
     fun showHistoricalOrder(item: OrderHistoryItem) {
-        _state.update { it.copy(orderDetail = item.toUnlockResult()) }
+        _state.update { it.copy(orderDetail = item.toUnlockResult(), showOrderHistory = false) }
     }
 
     private fun showToast(message: String) {

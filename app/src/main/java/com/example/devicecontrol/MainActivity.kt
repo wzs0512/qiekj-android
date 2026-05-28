@@ -99,6 +99,14 @@ private fun DeviceControlApp(vm: AppViewModel) {
         vm.consumeError()
     }
 
+    if (state.showOrderHistory) {
+        OrderHistoryDialog(
+            orders = state.orderHistory,
+            onDismiss = vm::dismissOrderHistory,
+            onOpenOrder = vm::showHistoricalOrder,
+        )
+    }
+
     state.orderDetail?.let { detail ->
         OrderDetailDialog(
             detail = detail,
@@ -312,24 +320,45 @@ private fun MeScreen(
         Spacer(Modifier.height(24.dp))
         Divider()
         Spacer(Modifier.height(18.dp))
-        Text("历史订单", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(8.dp))
-        if (state.orderHistory.isEmpty()) {
-            EmptyText("暂无历史订单")
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f, fill = false),
-            ) {
-                items(state.orderHistory) { item ->
-                    OrderHistoryRow(item = item, onClick = { vm.showHistoricalOrder(item) })
-                }
-            }
+        Button(
+            onClick = vm::showOrderHistory,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF222222)),
+        ) {
+            Text("历史订单")
         }
     }
 }
 
+@Composable
+private fun OrderHistoryDialog(
+    orders: List<OrderHistoryItem>,
+    onDismiss: () -> Unit,
+    onOpenOrder: (OrderHistoryItem) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("历史订单") },
+        text = {
+            if (orders.isEmpty()) {
+                Text("暂无历史订单", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                LazyColumn {
+                    items(orders) { item ->
+                        OrderHistoryRow(item = item, onClick = { onOpenOrder(item) })
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("关闭")
+            }
+        },
+        shape = RoundedCornerShape(8.dp),
+    )
+}
 @Composable
 private fun OrderHistoryRow(item: OrderHistoryItem, onClick: () -> Unit) {
     Column(
