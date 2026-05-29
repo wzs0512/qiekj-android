@@ -7,6 +7,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -354,6 +356,7 @@ private fun MeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
         PageTitle("我的", if (state.hasToken) "已登录" else "未登录")
@@ -408,6 +411,16 @@ private fun MeScreen(
             Text("查看当前 Token")
         }
 
+        Spacer(Modifier.height(10.dp))
+        Button(
+            onClick = vm::showOrderHistory,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF222222)),
+        ) {
+            Text("历史订单")
+        }
+
         Spacer(Modifier.height(28.dp))
         Divider()
         Spacer(Modifier.height(18.dp))
@@ -435,17 +448,6 @@ private fun MeScreen(
             else -> EmptyText("暂无资产信息")
         }
 
-        Spacer(Modifier.height(24.dp))
-        Divider()
-        Spacer(Modifier.height(18.dp))
-        Button(
-            onClick = vm::showOrderHistory,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF222222)),
-        ) {
-            Text("历史订单")
-        }
     }
 }
 
