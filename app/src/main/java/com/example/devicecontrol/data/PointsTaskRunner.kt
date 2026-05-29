@@ -1,9 +1,11 @@
-﻿package com.example.devicecontrol.data
+package com.example.devicecontrol.data
 
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -25,7 +27,7 @@ class PointsTaskRunner(
 
     suspend fun run(userAgent: String, log: suspend (String) -> Unit) {
         val token = tokenProvider()?.takeIf { it.isNotBlank() } ?: error("请先在我的页面登录")
-        log("已读取本地 Token")
+        log("已读取本地 Token：${token.take(8)}...${token.takeLast(8)}")
         log("已自动获取 UA：$userAgent")
 
         val user = request("https://userapi.qiekj.com/user/info", token, userAgent, mapOf("token" to token))
@@ -33,7 +35,7 @@ class PointsTaskRunner(
         log(if (userName.isNullOrBlank()) "当前账号未设置昵称" else "当前账号：$userName")
 
         val before = balance(token, userAgent)
-        log("任务前积分：$before")
+        log("任务前积分：${before ?: "-"}")
 
         signIn(token, userAgent, log)
         shieldingQuery(token, userAgent, log)
@@ -110,9 +112,9 @@ class PointsTaskRunner(
             repeat(limit) { index ->
                 val taskRes = completeTask(token, ua, taskCode)
                 if (taskRes.codeInt() == 0 && taskRes["data"] == true) {
-                    log("${title} 第${index + 1}次完成")
+                    log("$title 第${index + 1}次完成")
                 } else {
-                    log("${title} 第${index + 1}次失败：${taskRes.messageText()}")
+                    log("$title 第${index + 1}次失败：${taskRes.messageText()}")
                 }
                 delay(10_000)
             }
@@ -183,10 +185,13 @@ class PointsTaskRunner(
             .post(form)
             .headers(headers(url, token, userAgent, timestamp, channel))
             .build()
-        return client.newCall(req).execute().use { response ->
-            val body = response.body?.string().orEmpty()
-            if (!response.isSuccessful) error("HTTP ${response.code}: $body")
-            jsonAdapter.fromJson(body).orEmpty()
+        return withContext(Dispatchers.IO) {
+            client.newCall(req).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) error("HTTP ${response.code}: ${body.take(300)}")
+                runCatching { jsonAdapter.fromJson(body).orEmpty() }
+                    .getOrElse { error("响应解析失败：${it.message ?: body.take(300)}") }
+            }
         }
     }
 
@@ -208,7 +213,6 @@ class PointsTaskRunner(
             .add("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
             .add("Host", "userapi.qiekj.com")
             .add("Connection", "Keep-Alive")
-            .add("Accept-Encoding", "gzip")
             .add("User-Agent", userAgent)
             .build()
     }

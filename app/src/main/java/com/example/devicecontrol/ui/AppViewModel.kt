@@ -34,6 +34,7 @@ data class AppUiState(
     val unlockStatus: String? = null,
     val orderDetail: UnlockResult? = null,
     val showOrderHistory: Boolean = false,
+    val tokenDialogText: String? = null,
     val toastMessage: String? = null,
     val errorMessage: String? = null,
 )
@@ -186,6 +187,15 @@ class AppViewModel(
             val now = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.CHINA).format(java.util.Date())
             state.copy(pointsLogs = (state.pointsLogs + "[$now] $line").takeLast(500))
         }
+    }
+
+    fun showCurrentToken() {
+        val token = repository.localToken()?.takeIf { it.isNotBlank() }
+        _state.update { it.copy(tokenDialogText = token ?: "当前未登录，暂无 Token") }
+    }
+
+    fun dismissCurrentToken() {
+        _state.update { it.copy(tokenDialogText = null) }
     }
     fun consumeToast() {
         _state.update { it.copy(toastMessage = null) }

@@ -104,6 +104,10 @@ private fun DeviceControlApp(vm: AppViewModel) {
         vm.consumeError()
     }
 
+    state.tokenDialogText?.let { token ->
+        TokenDialog(token = token, onDismiss = vm::dismissCurrentToken)
+    }
+
     if (state.showOrderHistory) {
         OrderHistoryDialog(
             orders = state.orderHistory,
@@ -159,6 +163,27 @@ private fun DeviceControlApp(vm: AppViewModel) {
     }
 }
 
+
+@Composable
+private fun TokenDialog(token: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("当前 Token") },
+        text = {
+            Text(
+                text = token,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("关闭")
+            }
+        },
+        shape = RoundedCornerShape(8.dp),
+    )
+}
 @Composable
 private fun OrderDetailDialog(
     detail: UnlockResult,
@@ -372,6 +397,15 @@ private fun MeScreen(
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF222222)),
         ) {
             Text(if (state.loggingIn) "登录中" else "确认登录")
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Button(
+            onClick = vm::showCurrentToken,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            Text("查看当前 Token")
         }
 
         Spacer(Modifier.height(28.dp))
