@@ -1,24 +1,12 @@
-胖乖生活一键开水版
 # Qiekj Android
 
-一个把 [`3ryng1um/qiekj`](https://github.com/3ryng1um/qiekj) Python 脚本流程改造成 Android App 的项目。原仓库说明这个流程主要用于胖乖生活饮水设备：通过登录获取 token，读取最近使用设备，获取设备 `skuId` / `imei`，再执行饮水解锁、同步状态和订单详情查询。
+这是一个把 [`3ryng1um/qiekj`](https://github.com/3ryng1um/qiekj) 相关 Python 脚本流程改造成 Android App 的项目。当前 App 使用 Kotlin + Jetpack Compose + Retrofit/OkHttp 实现。
 
-> 说明：本项目只是在 Android 端复刻个人脚本的请求流程。订单仍应按平台规则支付，请自行承担账号、设备和接口变更带来的风险。
+> 说明：本项目用于复刻个人脚本的请求流程和移动端界面。请自行承担账号、设备、接口变更和平台规则风险。不要把个人 token、抓包文件、签名密钥上传到公开仓库。
 
-## 功能
+## 安装包下载
 
-- 手机号验证码登录，登录成功后本地加密保存 token
-- 冷启动自动读取 token，不需要每次重新登录
-- 自动查询最近使用过的饮水设备
-- 首页点击设备即可启动完整解锁流程
-- 解锁后轮询设备状态，结束后查询订单原价和小票消耗
-- 我的页展示小票、积分、积分抵扣金额
-
-## 使用教程
-
-### 1. 安装 APK
-
-推荐从 GitHub Releases 下载最新版调试包：
+最新版 Debug APK：
 
 ```text
 https://github.com/wzs0512/qiekj-android/releases/download/v1.0.0-debug/qiekj-android-debug.apk
@@ -30,44 +18,30 @@ Release 页面：
 https://github.com/wzs0512/qiekj-android/releases/tag/v1.0.0-debug
 ```
 
-如果是本地编译，安装包会生成在：
+本地编译后 APK 位置：
 
 ```text
-app/build/outputs/apk/debug/app-debug.apk
+C:\Users\33059\Documents\pg\app\build\outputs\apk\debug\app-debug.apk
 ```
 
-如果手机提示“禁止安装未知来源应用”，在系统设置里允许当前文件管理器或浏览器安装应用即可。
+## 当前功能
 
-### 2. 登录
+### 三底栏导航
 
-1. 打开 App，进入底部导航的“我的”页面。
-2. 输入手机号。
-3. 点击“发送验证码”。
-4. 收到短信后输入验证码。
-5. 点击“确认登录”。
+App 当前为三底栏结构：
 
-登录成功后，App 会把 token 加密保存到本机。之后冷启动会优先读取本地 token，并自动刷新历史设备和资产信息。
+- 设备控制：原首页，展示历史设备并执行设备启动/解锁流程。
+- 积分任务：新增页面，执行积分自动化任务并实时显示日志。
+- 我的：手机号验证码登录、资产、Token 查看、历史订单入口。
 
-### 3. 查看资产
+### 设备控制
 
-登录成功后，“我的”页面底部会显示：
-
-- 小票：来自接口中的 `tokenCoin`，按源码逻辑除以 100 展示
-- 积分：来自 `integral`
-- 积分抵扣金额：来自 `integralAmount`
-
-如果资产没有刷新，点击“刷新”即可重新查询。
-
-### 4. 启动设备
-
-1. 进入底部导航的“设备控制”页面。
-2. 等待历史设备加载完成。
-3. 列表中每一行只展示设备名，即接口返回的 `goodsName`。
-4. 点击需要启动的设备。
-5. App 会按顺序自动执行：
+- 冷启动读取本地加密保存的 Token。
+- 有 Token 时自动调用 `goods/latestUsed` 查询历史设备。
+- 设备列表只显示 `goodsName`。
+- 点击设备后按原脚本顺序执行：
 
 ```text
-goods/latestUsed
 goods/normal/skus
 goods/normal/details
 userIntegral/checkUserIsRisk
@@ -79,25 +53,76 @@ order/afterPay/creating
 order/detail
 ```
 
-当 `goods/water/sync` 返回的 `workStatus != 2` 时，App 会退出轮询，并提示订单原价与花费小票。
+- `goods/water/sync` 轮询到 `workStatus != 2` 后，才查询订单详情并弹窗展示。
+- 订单详情包括订单号、订单 ID、订单原价、小票抵扣、积分抵扣和其他优惠。
+- 成功查询到订单详情后会保存到本地历史订单。
 
-## 和原脚本的对应关系
+### 积分任务
 
-| Android App | 原 Python 脚本函数 |
-| --- | --- |
-| 发送验证码 | `login()` 中的 `common/sms/sendCode` |
-| 确认登录 | `login()` 中的 `user/reg` |
-| 查询资产 | `query_balance()` |
-| 查询历史设备 | `get_latest_used()` |
-| 获取 SKU | `goodsid2sku()` |
-| 获取 IMEI | `get_imei()` |
-| 检查积分/风控 | `use_intergral()` |
-| 核心解锁 | `whole_unlock_water()` / `unlock_water()` |
-| 同步和支付详情 | `afterpay()` |
+积分任务页包含：
+
+- 顶部按钮：`开始执行自动化任务`
+- 下方终端风格日志窗口
+- 日志逐行追加
+- 新日志自动滚动到底部
+
+任务逻辑来自桌面 `积分.txt` 的 Python 脚本迁移：
+
+- 自动通过 `WebSettings.getDefaultUserAgent(context)` 获取手机系统 UA，不需要手动粘贴。
+- 直接读取“我的”页面登录后保存在本地的 Token。
+- 复刻 `sign()` / `signzfb()` SHA-256 签名逻辑。
+- 请求版本使用 `1.60.3`。
+- 支持签到、首页浏览、任务列表、APP 视频任务、支付宝视频任务和积分统计。
+- 所有等待使用 Kotlin `delay()`，不会阻塞 UI。
+- 网络请求放到 `Dispatchers.IO` 执行。
+- 不再手动设置 `Accept-Encoding: gzip`，交给 OkHttp 自动处理，避免 App 端响应解析异常。
+
+日志中会显示 Token 前后 8 位，方便和“我的”页面完整 Token 对照。
+
+### 我的页面
+
+- 手机号验证码登录。
+- 登录成功后 Token 加密保存到本地。
+- 冷启动自动复用本地 Token。
+- 资产展示：小票、积分、积分抵扣金额。
+- `查看当前 Token`：弹窗展示当前本地保存的完整 Token，用于排查重新登录后 Token 是否变化。
+- `历史订单`：位于 Token 按钮下方，点击后打开二级弹窗，展示最近保存的订单。
+- 我的页面支持垂直滚动，避免小屏幕按钮被底部导航遮挡。
+
+## 使用步骤
+
+### 1. 登录
+
+1. 打开 App，进入底部导航的“我的”。
+2. 输入手机号。
+3. 点击“发送验证码”。
+4. 输入短信验证码。
+5. 点击“确认登录”。
+6. 登录成功后可点击“查看当前 Token”确认本地 Token。
+
+### 2. 启动设备
+
+1. 进入“设备控制”。
+2. 等待历史设备加载。
+3. 点击目标设备。
+4. 等待设备使用结束。
+5. App 会在设备结束后弹出订单详情，并保存到历史订单。
+
+### 3. 查看历史订单
+
+1. 进入“我的”。
+2. 点击“历史订单”。
+3. 在弹出的二级界面查看最近订单。
+4. 点击某条订单可再次查看订单详情。
+
+### 4. 执行积分任务
+
+1. 先在“我的”页面完成登录。
+2. 进入“积分任务”。
+3. 点击“开始执行自动化任务”。
+4. 查看日志窗口中的实时输出。
 
 ## 开发与编译
-
-本项目使用 Kotlin + Jetpack Compose + Retrofit。
 
 ### 环境
 
@@ -114,38 +139,28 @@ $env:ANDROID_SDK_ROOT=$env:ANDROID_HOME
 .\gradlew.bat assembleDebug
 ```
 
-APK 输出：
+如果本机 Gradle Wrapper 下载慢，也可以使用项目内已缓存的 Gradle：
 
-```text
-C:\Users\33059\Documents\pg\app\build\outputs\apk\debug\app-debug.apk
+```powershell
+$env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot'
+$env:PATH="$env:JAVA_HOME\bin;C:\Users\33059\Documents\pg\.build-tools\gradle-8.10.2\bin;$env:PATH"
+gradle assembleDebug
 ```
 
-## 目录结构
+## 关键目录
 
 ```text
-.
-├── app
-│   └── src/main
-│       ├── AndroidManifest.xml
-│       ├── java/com/example/devicecontrol
-│       │   ├── MainActivity.kt
-│       │   ├── data
-│       │   │   ├── AppRepository.kt
-│       │   │   ├── DeviceApi.kt
-│       │   │   ├── HeaderInterceptor.kt
-│       │   │   ├── Models.kt
-│       │   │   └── TokenStore.kt
-│       │   └── ui
-│       │       ├── AppViewModel.kt
-│       │       └── theme/Theme.kt
-│       └── res
-├── build.gradle.kts
-├── settings.gradle.kts
-└── README.md
+app/src/main/java/com/example/devicecontrol/MainActivity.kt
+app/src/main/java/com/example/devicecontrol/ui/AppViewModel.kt
+app/src/main/java/com/example/devicecontrol/data/AppRepository.kt
+app/src/main/java/com/example/devicecontrol/data/DeviceApi.kt
+app/src/main/java/com/example/devicecontrol/data/PointsTaskRunner.kt
+app/src/main/java/com/example/devicecontrol/data/TokenStore.kt
+app/src/main/java/com/example/devicecontrol/data/OrderHistoryStore.kt
 ```
 
 ## 注意事项
 
-- 参考仓库提到，新用户接水后可能无法打印支付信息；本项目已尽量按脚本流程查询订单详情，但接口返回仍可能因账号状态不同而变化。
-- 如果接口返回结构变化，App 可能需要同步更新 `Models.kt` 和 `DeviceApi.kt`。
-- 不要把个人 token、抓包文件、签名密钥上传到公开仓库。
+- Token 会随手机号重新登录变化，这是平台正常行为；App 会保存最新登录得到的 Token。
+- 如果积分任务在 Python 中正常、App 中失败，优先查看积分任务日志中的 HTTP 状态码、响应解析错误或 Token 前后 8 位。
+- 接口返回结构变化时，可能需要同步更新 `Models.kt`、`DeviceApi.kt` 或 `PointsTaskRunner.kt`。
