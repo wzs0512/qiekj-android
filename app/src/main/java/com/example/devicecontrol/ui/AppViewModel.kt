@@ -16,6 +16,12 @@ import kotlinx.coroutines.launch
 
 enum class DeviceTab { Control, Points, Me }
 
+data class DeviceShortcutRequest(
+    val goodsId: String?,
+    val id: String?,
+    val goodsName: String?,
+)
+
 data class AppUiState(
     val currentTab: DeviceTab = DeviceTab.Control,
     val hasToken: Boolean = false,
@@ -43,6 +49,7 @@ class AppViewModel(
     private val repository: AppRepository,
 ) : ViewModel() {
     private val pointsTaskRunner = PointsTaskRunner { repository.localToken() }
+    private var pendingShortcutRequest: DeviceShortcutRequest? = null
     private val _state = MutableStateFlow(
         AppUiState(
             hasToken = repository.localToken() != null,
@@ -118,10 +125,41 @@ class AppViewModel(
             repository.latestDevices()
         }.onSuccess { devices ->
             _state.update { it.copy(devices = devices, loadingDevices = false) }
+            consumePendingShortcut(devices)
         }.onFailure {
             _state.update { it.copy(loadingDevices = false) }
             showError(it.message ?: "查询历史设备失败")
         }
+    }
+
+    fun openDeviceShortcut(request: DeviceShortcutRequest) {
+        pendingShortcutRequest = request
+        _state.update { it.copy(currentTab = DeviceTab.Control) }
+        if (!state.value.hasToken) {
+            showError("请先登录后再使用桌面设备快捷方式")
+            return
+        }
+        val devices = state.value.devices
+        if (devices.isEmpty()) {
+            refreshDevices()
+        } else {
+            consumePendingShortcut(devices)
+        }
+    }
+
+    private fun consumePendingShortcut(devices: List<DeviceItem>) {
+        val request = pendingShortcutRequest ?: return
+        val target = devices.firstOrNull { device ->
+            (!request.goodsId.isNullOrBlank() && device.goodsId == request.goodsId) ||
+                (!request.id.isNullOrBlank() && device.id == request.id) ||
+                (!request.goodsName.isNullOrBlank() && device.goodsName == request.goodsName)
+        }
+        pendingShortcutRequest = null
+        if (target == null) {
+            showError("未找到对应的历史设备，请刷新设备列表后重试")
+            return
+        }
+        unlock(target)
     }
 
     fun refreshBalance() = viewModelScope.launch {

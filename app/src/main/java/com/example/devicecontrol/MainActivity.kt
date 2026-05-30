@@ -1,5 +1,12 @@
 package com.example.devicecontrol
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
+import android.graphics.drawable.Icon
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.webkit.WebSettings
 import android.widget.Toast
@@ -25,6 +32,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Person
@@ -34,6 +43,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -59,14 +69,22 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.devicecontrol.data.AppRepository
+import com.example.devicecontrol.data.DeviceItem
 import com.example.devicecontrol.data.OrderHistoryItem
 import com.example.devicecontrol.data.OrderHistoryStore
 import com.example.devicecontrol.data.TokenStore
 import com.example.devicecontrol.data.UnlockResult
 import com.example.devicecontrol.ui.AppViewModel
 import com.example.devicecontrol.ui.AppViewModelFactory
+import com.example.devicecontrol.ui.DeviceShortcutRequest
 import com.example.devicecontrol.ui.DeviceTab
 import com.example.devicecontrol.ui.theme.DeviceControlTheme
+
+private const val ACTION_OPEN_DEVICE_SHORTCUT = "com.example.devicecontrol.OPEN_DEVICE_SHORTCUT"
+private const val EXTRA_GOODS_ID = "goods_id"
+private const val EXTRA_DEVICE_ID = "device_id"
+private const val EXTRA_GOODS_NAME = "goods_name"
+private const val PROJECT_URL = "https://github.com/wzs0512/qiekj-android"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,10 +100,58 @@ class MainActivity : ComponentActivity() {
                 val vm: AppViewModel = viewModel(
                     factory = AppViewModelFactory(repository),
                 )
+                LaunchedEffect(vm) {
+                    shortcutRequestFromIntent(intent)?.let(vm::openDeviceShortcut)
+                }
                 DeviceControlApp(vm)
             }
         }
     }
+}
+
+private fun shortcutRequestFromIntent(intent: Intent?): DeviceShortcutRequest? {
+    if (intent?.action != ACTION_OPEN_DEVICE_SHORTCUT) return null
+    return DeviceShortcutRequest(
+        goodsId = intent.getStringExtra(EXTRA_GOODS_ID),
+        id = intent.getStringExtra(EXTRA_DEVICE_ID),
+        goodsName = intent.getStringExtra(EXTRA_GOODS_NAME),
+    )
+}
+
+private fun pinDeviceShortcut(context: Context, device: DeviceItem) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+        Toast.makeText(context, "当前系统不支持添加桌面快捷方式", Toast.LENGTH_LONG).show()
+        return
+    }
+    val shortcutManager = context.getSystemService(ShortcutManager::class.java)
+    if (shortcutManager?.isRequestPinShortcutSupported != true) {
+        Toast.makeText(context, "当前桌面不支持添加快捷方式", Toast.LENGTH_LONG).show()
+        return
+    }
+
+    val label = device.goodsName.ifBlank { "历史设备" }
+    val shortcutIntent = Intent(context, MainActivity::class.java).apply {
+        action = ACTION_OPEN_DEVICE_SHORTCUT
+        putExtra(EXTRA_GOODS_ID, device.goodsId)
+        putExtra(EXTRA_DEVICE_ID, device.id)
+        putExtra(EXTRA_GOODS_NAME, device.goodsName)
+    }
+    val shortcut = ShortcutInfo.Builder(
+        context,
+        "device-${device.goodsId ?: device.id ?: device.goodsName.hashCode()}",
+    )
+        .setShortLabel(label.take(10))
+        .setLongLabel(label)
+        .setIcon(Icon.createWithResource(context, R.drawable.ic_launcher))
+        .setIntent(shortcutIntent)
+        .build()
+
+    shortcutManager.requestPinShortcut(shortcut, null)
+}
+
+private fun openProjectHome(context: Context) {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(PROJECT_URL))
+    context.startActivity(intent)
 }
 
 @Composable
@@ -313,6 +379,8 @@ private fun ControlScreen(
     state: com.example.devicecontrol.ui.AppUiState,
     vm: AppViewModel,
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -340,6 +408,7 @@ private fun ControlScreen(
                         name = device.goodsName.ifBlank { "未命名设备" },
                         enabled = !state.unlocking,
                         onClick = { vm.unlock(device) },
+                        onAddShortcut = { pinDeviceShortcut(context, device) },
                     )
                 }
             }
@@ -353,13 +422,24 @@ private fun MeScreen(
     state: com.example.devicecontrol.ui.AppUiState,
     vm: AppViewModel,
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
-        PageTitle("我的", if (state.hasToken) "已登录" else "未登录")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            PageTitle("我的", if (state.hasToken) "已登录" else "未登录")
+            IconButton(onClick = { openProjectHome(context) }) {
+                androidx.compose.material3.Icon(Icons.Outlined.Code, contentDescription = "打开 GitHub")
+            }
+        }
         Spacer(Modifier.height(22.dp))
 
         OutlinedTextField(
@@ -515,14 +595,36 @@ private fun PageTitle(title: String, subtitle: String) {
 }
 
 @Composable
-private fun DeviceRow(name: String, enabled: Boolean, onClick: () -> Unit) {
+private fun DeviceRow(
+    name: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    onAddShortcut: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 18.dp),
     ) {
-        Text(name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = name,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = enabled, onClick = onClick),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+            )
+            TextButton(onClick = onAddShortcut, enabled = enabled) {
+                androidx.compose.material3.Icon(Icons.Outlined.Add, contentDescription = "添加到桌面")
+                Spacer(Modifier.padding(horizontal = 2.dp))
+                Text("桌面")
+            }
+        }
         Spacer(Modifier.height(16.dp))
         Divider()
     }
