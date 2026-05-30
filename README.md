@@ -52,5 +52,3 @@ https://github.com/wzs0512/qiekj-android/releases/download/v1.0.0-debug/qiekj-an
 - 如果积分任务在 Python 中正常、App 中失败，优先查看积分任务日志中的 HTTP 状态码、响应解析错误或 Token 前后 8 位。
 - 接口返回结构变化时，可能需要同步更新 `Models.kt`、`DeviceApi.kt` 或 `PointsTaskRunner.kt`。
 
-
-  [![GitHub Activity Graph](https://github-readme-activity-graph.vercel.app/graph?username=wzs0512&theme=react)](https://github.com/Ashutosh00710/github-readme-activity-graph)
