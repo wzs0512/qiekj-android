@@ -1,4 +1,4 @@
-# Qiekj Android
+# 胖乖生活
 
 这是一个把 [`3ryng1um/qiekj`](https://github.com/3ryng1um/qiekj) 相关 Python 脚本流程改造成 Android App 的项目。当前 App 使用 Kotlin + Jetpack Compose + Retrofit/OkHttp 实现。
 
