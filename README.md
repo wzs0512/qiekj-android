@@ -1,4 +1,4 @@
-# 胖乖生活 Android App
+# 胖乖生活 Android App1.2有问题，用1.1
 
 将 [`3ryng1um/qiekj`](https://github.com/3ryng1um/qiekj) 的常用设备流程整理为 Android 应用。项目使用 Kotlin、Jetpack Compose、Retrofit 和 OkHttp。
 
