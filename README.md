@@ -1,54 +1,40 @@
-# 胖乖生活
+# 胖乖生活 Android App
 
-这是一个把 [`3ryng1um/qiekj`](https://github.com/3ryng1um/qiekj) 相关 Python 脚本流程改造成 Android App 的项目。当前 App 使用 Kotlin + Jetpack Compose + Retrofit/OkHttp 实现。
+将 [`3ryng1um/qiekj`](https://github.com/3ryng1um/qiekj) 的常用设备流程整理为 Android 应用。项目使用 Kotlin、Jetpack Compose、Retrofit 和 OkHttp。
 
-> 说明：本项目用于复刻个人脚本的请求流程和移动端界面。请自行承担账号、设备、接口变更和平台规则风险。不要把个人 token、抓包文件、签名密钥上传到公开仓库。
+## 当前功能
 
-## 安装包下载
+应用底部仅保留两个页面：
 
-最新版 Debug APK：
+- **设备控制**：查看历史设备、刷新设备列表、点击设备开始使用，并可将设备添加到桌面快捷方式。
+- **我的**：手机号验证码登录、查看当前 Token、查看历史订单，以及刷新小票、积分和积分抵扣金额。
 
-```text
-https://github.com/wzs0512/qiekj-android/releases/download/v1.0.0-debug/qiekj-android-debug.apk
+积分自动化任务页面及其失效流程已从应用中移除。账户资产里的积分余额仍会正常显示。
+
+## 使用方法
+
+1. 打开“我的”，输入手机号并获取短信验证码，然后登录。
+2. 登录后打开“设备控制”，等待历史设备同步。
+3. 点击设备卡片开始使用；完成后可在“我的 → 历史订单”查看订单详情。
+4. 在“我的”页面刷新账户资产，或查看当前登录 Token。
+
+## 构建
+
+在 Windows 上运行：
+
+```powershell
+.\gradlew.bat assembleDebug
 ```
 
-## 使用步骤
-
-### 1. 登录
-
-1. 打开 App，进入底部导航的“我的”。
-2. 输入手机号。
-3. 点击“发送验证码”。
-4. 输入短信验证码。
-5. 点击“确认登录”。
-6. 登录成功后可点击“查看当前 Token”确认本地 Token。
-
-### 2. 启动设备
-
-1. 进入“设备控制”。
-2. 等待历史设备加载。
-3. 点击目标设备。
-4. 等待设备使用结束。
-5. App 会在设备结束后弹出订单详情，并保存到历史订单。
-
-### 3. 查看历史订单
-
-1. 进入“我的”。
-2. 点击“历史订单”。
-3. 在弹出的二级界面查看最近订单。
-4. 点击某条订单可再次查看订单详情。
-
-### 4. 执行积分任务
-
-1. 先在“我的”页面完成登录。
-2. 进入“积分任务”。
-3. 点击“开始执行自动化任务”。
-4. 查看日志窗口中的实时输出。
-
+Debug APK 输出位置：`app/build/outputs/apk/debug/app-debug.apk`。
 
 ## 注意事项
 
-- Token 会随手机号重新登录变化，这是平台正常行为；App 会保存最新登录得到的 Token。
-- 如果积分任务在 Python 中正常、App 中失败，优先查看积分任务日志中的 HTTP 状态码、响应解析错误或 Token 前后 8 位。
-- 接口返回结构变化时，可能需要同步更新 `Models.kt`、`DeviceApi.kt` 或 `PointsTaskRunner.kt`。
+- 手机号、验证码和 Token 属于敏感信息，不要提交到公开仓库或截图分享。
+- 登录、设备及资产接口可能随服务端变化而调整；异常时请检查应用提示和网络响应。
+- 本项目用于个人设备流程与界面管理，请遵循相关平台规则。
 
+## 项目
+
+- 源码：[wzs0512/qiekj-android](https://github.com/wzs0512/qiekj-android)
+- 发布版本：[GitHub Releases](https://github.com/wzs0512/qiekj-android/releases)
