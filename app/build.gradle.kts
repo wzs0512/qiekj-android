@@ -56,3 +56,4 @@ dependencies {
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
+
