@@ -1,6 +1,15 @@
-# 胖乖生活
+# 胖乖生活 Android App
 
-这是一个把 [`3ryng1um/qiekj`](https://github.com/3ryng1um/qiekj) 常用设备流程改造成 Android App 的项目。当前 App 使用 Kotlin + Jetpack Compose + Retrofit/OkHttp 实现。
+当前版本：**1.2**。这是一个将 [`3ryng1um/qiekj`](https://github.com/3ryng1um/qiekj) 常用设备流程整理为 Android 应用的项目，使用 Kotlin、Jetpack Compose、Retrofit 与 OkHttp 实现。
+
+## 界面与功能
+
+应用沿用 1.1 版本的界面风格，底部仅保留两个页面：
+
+- **设备控制**：查看和刷新历史设备；点击设备开始使用；可添加设备桌面快捷方式。
+- **我的**：手机号验证码登录、查看当前 Token、查看历史订单，以及刷新小票、积分和积分抵扣金额。
+
+“积分任务/刷积分”页面及其自动化执行代码已从 1.2 中移除；账户资产中的积分余额仍会正常显示。
 
 > 说明：本项目用于复刻个人脚本的请求流程和移动端界面。请自行承担账号、设备、接口变更和平台规则风险。不要把个人 token、抓包文件、签名密钥上传到公开仓库。
 
@@ -16,7 +25,7 @@ https://github.com/wzs0512/qiekj-android/releases/download/v1.0.0-debug/qiekj-an
 
 ### 1. 登录
 
-1. 打开 App，进入底部导航的“我的”。App 仅保留“设备控制”和“我的”两个页面。
+1. 打开 App，进入底部导航的“我的”。
 2. 输入手机号。
 3. 点击“发送验证码”。
 4. 输入短信验证码。
@@ -43,5 +52,6 @@ https://github.com/wzs0512/qiekj-android/releases/download/v1.0.0-debug/qiekj-an
 - Token 会随手机号重新登录变化，这是平台正常行为；App 会保存最新登录得到的 Token。
 - 积分自动化任务模块已移除；“我的”页面中的积分余额仍会正常显示。
 - 接口返回结构变化时，可能需要同步更新 `Models.kt` 或 `DeviceApi.kt`。
+- 手机号、验证码和 Token 属于敏感信息，请勿提交或公开分享。
 
 
