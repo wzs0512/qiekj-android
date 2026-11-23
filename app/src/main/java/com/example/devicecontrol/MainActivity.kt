@@ -33,22 +33,16 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.ConfirmationNumber
-import androidx.compose.material.icons.outlined.Stars
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -63,12 +57,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.devicecontrol.data.AppRepository
 import com.example.devicecontrol.data.DeviceItem
@@ -202,22 +196,12 @@ private fun DeviceControlApp(vm: AppViewModel) {
                     onClick = { vm.selectTab(DeviceTab.Control) },
                     icon = { androidx.compose.material3.Icon(Icons.Outlined.Home, contentDescription = null) },
                     label = { Text("设备控制") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                    ),
                 )
                 NavigationBarItem(
                     selected = state.currentTab == DeviceTab.Me,
                     onClick = { vm.selectTab(DeviceTab.Me) },
                     icon = { androidx.compose.material3.Icon(Icons.Outlined.Person, contentDescription = null) },
                     label = { Text("我的") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                    ),
                 )
             }
         },
@@ -315,63 +299,36 @@ private fun ControlScreen(
 ) {
     val context = LocalContext.current
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    PageTitle("设备控制", "管理并快速使用历史设备")
-                }
-                IconButton(
-                    onClick = vm::refreshDevices,
-                    enabled = state.hasToken && !state.loadingDevices,
-                ) {
-                    androidx.compose.material3.Icon(Icons.Outlined.Refresh, contentDescription = "刷新设备")
-                }
-            }
+        PageTitle("设备控制", state.unlockStatus ?: "历史设备")
+        Spacer(Modifier.height(18.dp))
+
+        if (!state.hasToken) {
+            EmptyText("请先到“我的”页面登录获取权限")
+            return@Column
         }
-        item {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
+
+        if (state.loadingDevices) {
+            LoadingText("正在查询历史设备")
+        } else if (state.devices.isEmpty()) {
+            EmptyText("暂无历史设备")
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 18.dp),
             ) {
-                Column(Modifier.padding(20.dp)) {
-                    Text("欢迎回来", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        if (state.hasToken) "选择一台设备即可开始使用。" else "登录后即可查看你的设备并开始使用。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
+                items(state.devices) { device ->
+                    DeviceRow(
+                        name = device.goodsName.ifBlank { "未命名设备" },
+                        enabled = !state.unlocking,
+                        onClick = { vm.unlock(device) },
+                        onAddShortcut = { pinDeviceShortcut(context, device) },
                     )
                 }
-            }
-        }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("历史设备", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Text(
-                    if (!state.hasToken) "未登录" else if (state.loadingDevices) "同步中" else "${state.devices.size} 台",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        when {
-            !state.hasToken -> item { EmptyPanel("请先登录", "前往“我的”页面登录后，即可同步历史设备。") }
-            state.loadingDevices && state.devices.isEmpty() -> item { LoadingPanel("正在查询历史设备") }
-            state.devices.isEmpty() -> item { EmptyPanel("还没有历史设备", "使用过的设备会显示在这里。") }
-            else -> items(state.devices) { device ->
-                DeviceCard(
-                    name = device.goodsName.ifBlank { "未命名设备" },
-                    status = state.unlockStatus,
-                    enabled = !state.unlocking,
-                    onClick = { vm.unlock(device) },
-                    onAddShortcut = { pinDeviceShortcut(context, device) },
-                )
             }
         }
     }
@@ -386,124 +343,109 @@ private fun MeScreen(
     val context = LocalContext.current
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                PageTitle("我的", if (state.hasToken) "账号与资产" else "登录后管理账号和订单")
-            }
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = if (state.hasToken) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-            ) {
-                Text(
-                    if (state.hasToken) "已登录" else "未登录",
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-
-        Surface(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
         ) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("账号登录", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                Text("登录后同步设备与账户资产", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedTextField(
-                    value = state.phone,
-                    onValueChange = vm::updatePhone,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text("手机号") },
-                    leadingIcon = { androidx.compose.material3.Icon(Icons.Outlined.PhoneAndroid, contentDescription = null) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    shape = RoundedCornerShape(16.dp),
-                )
-                Button(
-                    onClick = vm::sendCode,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.sendingCode,
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(vertical = 14.dp),
-                ) {
-                    Text(if (state.sendingCode) "正在发送验证码…" else "发送验证码")
-                }
-                OutlinedTextField(
-                    value = state.code,
-                    onValueChange = vm::updateCode,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text("短信验证码") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(16.dp),
-                )
-                Button(
-                    onClick = vm::login,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.loggingIn,
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(vertical = 14.dp),
-                ) {
-                    Text(if (state.loggingIn) "正在登录…" else "登录")
-                }
+            PageTitle("我的", if (state.hasToken) "已登录" else "未登录")
+            IconButton(onClick = { openProjectHome(context) }) {
+                androidx.compose.material3.Icon(Icons.Outlined.Code, contentDescription = "打开 GitHub")
             }
         }
+        Spacer(Modifier.height(22.dp))
 
-        Text("快捷操作", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ActionTile(
-                modifier = Modifier.weight(1f),
-                icon = { androidx.compose.material3.Icon(Icons.Outlined.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                title = "当前 Token",
-                subtitle = "查看登录凭证",
-                onClick = vm::showCurrentToken,
-            )
-            ActionTile(
-                modifier = Modifier.weight(1f),
-                icon = { androidx.compose.material3.Icon(Icons.Outlined.History, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                title = "历史订单",
-                subtitle = "查看使用记录",
-                onClick = vm::showOrderHistory,
-            )
-        }
-
-        Surface(
+        OutlinedTextField(
+            value = state.phone,
+            onValueChange = vm::updatePhone,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
+            singleLine = true,
+            label = { Text("手机号") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            shape = RoundedCornerShape(8.dp),
+        )
+        Spacer(Modifier.height(10.dp))
+        Button(
+            onClick = vm::sendCode,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !state.sendingCode,
+            shape = RoundedCornerShape(8.dp),
         ) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("账户资产", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    IconButton(onClick = vm::refreshBalance, enabled = state.hasToken && !state.loadingBalance) {
-                        androidx.compose.material3.Icon(Icons.Outlined.Refresh, contentDescription = "刷新资产")
-                    }
-                }
-                when {
-                    !state.hasToken -> Text("登录后查看小票、积分和抵扣金额", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    state.loadingBalance -> LoadingPanel("正在查询账户资产")
-                    state.balance != null -> {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AssetValue(Modifier.weight(1f), "小票", state.balance.ticketText, Icons.Outlined.ConfirmationNumber)
-                            AssetValue(Modifier.weight(1f), "积分", state.balance.pointsText, Icons.Outlined.Stars)
-                            AssetValue(Modifier.weight(1f), "积分抵扣", state.balance.integralAmount ?: "-", Icons.Outlined.Code)
-                        }
-                    }
-                    else -> Text("暂无资产信息", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+            Text(if (state.sendingCode) "发送中" else "发送验证码")
+        }
+
+        Spacer(Modifier.height(16.dp))
+        OutlinedTextField(
+            value = state.code,
+            onValueChange = vm::updateCode,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("验证码") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = RoundedCornerShape(8.dp),
+        )
+        Spacer(Modifier.height(10.dp))
+        Button(
+            onClick = vm::login,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !state.loggingIn,
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF222222)),
+        ) {
+            Text(if (state.loggingIn) "登录中" else "确认登录")
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Button(
+            onClick = vm::showCurrentToken,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            Text("查看当前 Token")
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Button(
+            onClick = vm::showOrderHistory,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF222222)),
+        ) {
+            Text("历史订单")
+        }
+
+        Spacer(Modifier.height(28.dp))
+        Divider()
+        Spacer(Modifier.height(18.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("资产", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+            TextButton(onClick = vm::refreshBalance, enabled = state.hasToken && !state.loadingBalance) {
+                Text("刷新")
             }
         }
-        IconButton(onClick = { openProjectHome(context) }, modifier = Modifier.align(Alignment.End)) {
-            androidx.compose.material3.Icon(Icons.Outlined.Code, contentDescription = "打开 GitHub 项目")
+        Spacer(Modifier.height(8.dp))
+        when {
+            !state.hasToken -> EmptyText("登录后展示资产信息")
+            state.loadingBalance -> LoadingText("正在查询资产")
+            state.balance != null -> {
+                Text("小票：${state.balance.ticketText}", style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.height(8.dp))
+                Text("积分：${state.balance.pointsText}", style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.height(8.dp))
+                Text("积分抵扣金额：${state.balance.integralAmount ?: "-"}", style = MaterialTheme.typography.bodyLarge)
+            }
+            else -> EmptyText("暂无资产信息")
         }
+
     }
 }
 
@@ -557,117 +499,63 @@ private fun OrderHistoryRow(item: OrderHistoryItem, onClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(12.dp))
-        HorizontalDivider()
+        Divider()
     }
 }
 
 @Composable
 private fun PageTitle(title: String, subtitle: String) {
     Column {
-        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
+        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun DeviceCard(
+private fun DeviceRow(
     name: String,
-    status: String?,
     enabled: Boolean,
     onClick: () -> Unit,
     onAddShortcut: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick),
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 18.dp),
     ) {
         Row(
-            modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                androidx.compose.material3.Icon(
-                    Icons.Outlined.Home,
-                    contentDescription = null,
-                    modifier = Modifier.padding(12.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Column(Modifier.weight(1f).padding(start = 14.dp)) {
-                Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(4.dp))
-                Text(status ?: "点击卡片开始使用", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            IconButton(onClick = onAddShortcut, enabled = enabled) {
+            Text(
+                text = name,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = enabled, onClick = onClick),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+            )
+            TextButton(onClick = onAddShortcut, enabled = enabled) {
                 androidx.compose.material3.Icon(Icons.Outlined.Add, contentDescription = "添加到桌面")
+                Spacer(Modifier.padding(horizontal = 2.dp))
+                Text("桌面")
             }
         }
+        Spacer(Modifier.height(16.dp))
+        Divider()
     }
 }
 
 @Composable
-private fun EmptyPanel(title: String, message: String) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-    ) {
-        Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun LoadingText(text: String) {
+    Box(modifier = Modifier.fillMaxWidth().padding(top = 36.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(strokeWidth = 2.dp)
+            Spacer(Modifier.height(12.dp))
+            Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-    }
-}
-
-@Composable
-private fun LoadingPanel(message: String) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        CircularProgressIndicator(strokeWidth = 2.dp)
-        Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun ActionTile(
-    modifier: Modifier = Modifier,
-    icon: @Composable () -> Unit,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            icon()
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun AssetValue(
-    modifier: Modifier,
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        androidx.compose.material3.Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -677,3 +565,4 @@ private fun EmptyText(text: String) {
         Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
