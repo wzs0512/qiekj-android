@@ -6,17 +6,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF65558F),
+    primary = Color(0xFF222222),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFEADDFF),
-    onPrimaryContainer = Color(0xFF210F40),
-    secondary = Color(0xFF625B71),
-    background = Color(0xFFF7F5FA),
-    surface = Color(0xFFFFFBFF),
-    surfaceVariant = Color(0xFFF0ECF4),
-    onSurface = Color(0xFF1D1A22),
-    onSurfaceVariant = Color(0xFF6F6877),
-    outline = Color(0xFFDED8E5),
+    secondary = Color(0xFF4E6E5D),
+    background = Color(0xFFFAFAF8),
+    surface = Color(0xFFFAFAF8),
+    onSurface = Color(0xFF202020),
+    onSurfaceVariant = Color(0xFF6F6F68),
+    outline = Color(0xFFE0E0DA),
 )
 
 @Composable
@@ -26,3 +23,4 @@ fun DeviceControlTheme(content: @Composable () -> Unit) {
         content = content,
     )
 }
+
