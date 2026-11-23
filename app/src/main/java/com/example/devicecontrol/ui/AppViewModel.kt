@@ -194,8 +194,6 @@ class AppViewModel(
             showError(it.message ?: "解锁失败")
         }
     }
-
-
     fun showCurrentToken() {
         val token = repository.localToken()?.takeIf { it.isNotBlank() }
         _state.update { it.copy(tokenDialogText = token ?: "当前未登录，暂无 Token") }
@@ -245,3 +243,4 @@ class AppViewModelFactory(
         return AppViewModel(repository) as T
     }
 }
+
